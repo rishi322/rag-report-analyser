@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Market Report Analyzer</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        h2 {
+            color: #4C72B0;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .section {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+            padding: 20px;
+        }
+
+        .section h3 {
+            color: #4C72B0;
+            margin-bottom: 15px;
+        }
+
+        input[type="file"], input[type="text"], button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #4C72B0;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #3a5a8a;
+        }
+
+        .response, .comparison, .wordcloud-container {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #ffffff;
+        }
+
+        .wordcloud-container img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        .text-preview {
+            max-height: 100px;
+            overflow: hidden;
+            position: relative;
+            transition: max-height 0.3s ease;
+        }
+
+        .text-preview::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+        }
+
+        .view-more {
+            color: #4C72B0;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .view-more:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive Design */
+        @media (min-width: 768px) {
+            .section {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            input[type="file"], input[type="text"], button {
+                width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>RAG Market Report Analyzer</h2>
+
+        <!-- File Upload Section -->
+        <div class="section">
+            <h3>Upload PDF Reports</h3>
+            <input type="file" id="pdfUpload" multiple>
+            <button onclick="uploadFiles()">Upload PDFs</button>
+            <p id="uploadStatus"></p>
+        </div>
+
+        <!-- Query Section -->
+        <div class="section">
+            <h3>Key Insights of Reports</h3>
+            <button onclick="searchReports()">Key Insights</button>
+            <div id="response" class="response"></div>
+        </div>
+
+        <!-- Comparison Section -->
+        <div class="section">
+            <h3>Compare Reports</h3>
+            <button onclick="compareReports()">Compare Reports</button>
+            <div id="comparison" class="comparison"></div>
+        </div>
+
+        <!-- Word Cloud Section -->
+        <div class="section">
+            <h3>Generate Word Cloud</h3>
+            <button onclick="generateWordCloud()">Show Reports Word Cloud</button>
+            <div id="wordcloudContainer" class="wordcloud-container">
+                <img id="wordcloudImage" src="" alt="Word Cloud will appear here">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://bounceai-iks2kmz3ha-uc.a.run.app";
+
+        // Upload PDF Files
+        async function uploadFiles() {
+            const files = document.getElementById('pdfUpload').files;
+            if (files.length === 0) {
+                alert("Please select at least one PDF file.");
+                return;
+            }
+
+            const formData = new FormData();
+            for (let file of files) {
+                formData.append("files", file);
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/upload_reports/`, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const result = await response.json();
+                document.getElementById('uploadStatus').innerText = result.message;
+            } catch (error) {
+                console.error("Error uploading files:", error);
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/check_plagiarism/`, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const result = await response.json();
+                document.getElementById('uploadStatus').innerText = `Your similarity percent is ${result.interpretation} & Your Semantic Similarity is ${result.similarity * 100}`;
+                console.log(result);
+            } catch (error) {
+                console.error("Error uploading files:", error);
+            }
+        }
+
+        // Search Reports
+        async function searchReports() {
+
+
+            try {
+                const response = await fetch(`${API_URL}/analyze_reports/`, {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
+
+                });
+
+                const result = await response.json();
+                let sources = result.sources
+                let summaries = result.summaries
+                let text = ''
+                for(var i = 0 ; i < sources.length; i++){
+                  console.log(sources[i])
+                  console.log(summaries[i])
+                  text += ("Source: " + sources[i] + "Summary: " +summaries)
+
+              }
+                console.log(result)
+                const responseDiv = document.getElementById('response');
+                responseDiv.innerHTML = `
+                    <h3>Results:</h3>
+                    <div class="text-preview">${text}</div>
+                    <div class="view-more" onclick="toggleFullText(this)">View More</div>
+                `;
+            } catch (error) {
+                console.error("Error searching reports:", error);
+            }
+        }
+
+        // Generate Word Cloud
+        async function generateWordCloud() {
+            try {
+                const response = await fetch(`${API_URL}/generate_dynamic_wordcloud/`, {
+                    method: "GET"
+                });
+
+                if (!response.ok) {
+                    alert("Error generating word cloud.");
+                    return;
+                }
+
+                const blob = await response.blob();
+                const imgUrl = URL.createObjectURL(blob);
+                document.getElementById('wordcloudImage').src = imgUrl;
+            } catch (error) {
+                console.error("Error generating word cloud:", error);
+            }
+        }
+
+        // Toggle Full Text
+        function toggleFullText(element) {
+            const textPreview = element.previousElementSibling;
+            if (textPreview.style.maxHeight === "100px" || !textPreview.style.maxHeight) {
+                // Expand the text to show full content
+                textPreview.style.maxHeight = "none"; // Remove height restriction
+                element.innerText = "View Less";
+            } else {
+                // Collapse the text back to preview mode
+                textPreview.style.maxHeight = "100px"; // Restrict height to 100px
+                element.innerText = "View More";
+            }
+        }
+    </script>
+</body>
+</html>
